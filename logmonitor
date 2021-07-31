@@ -1,0 +1,77 @@
+#!/bin/sh
+#
+# chkconfig: 2345 95 20
+# description: This python script will monitor and log files
+# you want using regular expression.  If it finds something
+# it will log it to it's log file and send an email to
+# whoever is listed as the contact in the config file
+#
+# processname: logmonitor
+#
+# Source function library.
+. /etc/init.d/functions
+
+DAEMON=/usr/sbin/logMonitor.py
+
+prog=logMonitor
+
+start () {
+	echo -n $"Starting $prog: "
+        if [ -f /var/run/logMonitor.pid ] || [ -f /var/lock/subsys/logMonitor ] ; then
+            echo_failure
+            echo
+            return $RETVAL
+        fi
+	# start daemon
+	$DAEMON &
+        if [ "$!" != 0 ]; then
+           echo $! > /var/run/logMonitor.pid
+	   touch /var/lock/subsys/logMonitor
+           echo_success 
+           echo
+        fi
+}
+
+stop () {
+	# stop daemon
+	echo -n $"Stopping $prog: "
+        if [ -f /var/run/logMonitor.pid ] || [ -f /var/lock/subsys/logMonitor ] ; then
+	   kill -3 `cat /var/run/logMonitor.pid` > /dev/null
+           rm -f /var/run/logMonitor.pid /var/lock/subsys/logMonitor
+           echo_success
+           echo
+        else
+           echo_failure
+           echo
+        fi
+	return $RETVAL
+}
+
+restart() {
+	stop
+	start
+}
+
+case $1 in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	restart)
+		stop
+                start
+	;;
+	status)
+            if [ -f /var/run/logMonitor.pid ] || [ -f /var/lock/subsys/logMonitor ] ; then
+                echo -n "prog is running..."
+            fi
+	;;
+	*)
+
+	echo $"Usage: $prog {start|stop|restart|condrestart|reload|status}"
+	exit 3
+esac
+
+exit $RETVAL
